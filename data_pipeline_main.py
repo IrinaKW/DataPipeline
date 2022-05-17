@@ -15,7 +15,6 @@ import one_or_two
 import select_data
 
 #Request information: data on Primary or Secondary Maintained schools
-type_school=print("Please specify if you require data on Primary or Secondary schools")
 choice=one_or_two.one_or_two()
 
 # Open URL page and click accept cookies button
