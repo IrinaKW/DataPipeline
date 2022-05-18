@@ -1,0 +1,12 @@
+xpath_cookie='//button[@class="btn cookie-banner__close"]'
+xpath_ed_tr='//*[@id="category-1"]'
+xpath_ch_ed='//*[@id="category-2"]'
+xpath_pr='//*[@id="subcatOption-1-1"]'
+xpath_sec='//*[@id="subcatOption-1-2"]'
+xpath_pre_sc='//*[@id="subcatOption-2-6"]'
+xpath_nurs='//*[@id="subcatOption-2-7"]'
+xpath_submit='//*[@id="main"]/div[2]/div/div[1]/form/button'
+xpath_pages='//span[@class="pagination__numbers"]'
+xpath_li_tags='//ul[@class="results-list list-unstyled"]/li'
+xpath_nextpage='//a[@class="pagination__next"]'
+
