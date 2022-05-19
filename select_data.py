@@ -1,6 +1,7 @@
 # Obtain data from looping over provided schools, select only those stating Primary or Secondary
 #create data frame for storage
 import json
+import uuid
 
 def select_data(li_tags, outfile):
 
@@ -19,6 +20,7 @@ def select_data(li_tags, outfile):
         elif len(info)==5:
             rating='NA'
         else: continue
-        
-        data_json=json.dumps({'name':[name], 'category':[category], 'address':[address], 'rating':[rating], 'last_report':[last_report]}, indent=4)  
+        id = uuid.uuid4()
+       
+        data_json=json.dumps({'id':[id], 'name':[name], 'category':[category], 'address':[address], 'rating':[rating], 'last_report':[last_report]}, indent=4)  
         outfile.write(data_json)    

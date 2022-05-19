@@ -30,6 +30,7 @@ The project uses Python, Selenium, Chromedrive to perform the above
 - Chrome 101.0.4951.67
 
 
+
 ## Features
 List the ready features here:
 - ability to accept cookies
@@ -43,38 +44,53 @@ section _in progress_
 
 ## Setup
 The required libraries are:
-- from selenium import webdriver
-- from selenium.webdriver.common.by import By
-- from selenium.webdriver.chrome.options import Options
-- from selenium.webdriver.support.ui import WebDriverWait
-- from selenium.webdriver.support import expected_conditions as EC
-- import time
-- import pandas as pd
+- selenium / webdriver
+- time
+- os
+- uuid
+
+The reqduired files, with list of constants and methods:
+- import input_categories: convert input information into related xpaths
+- import select_data: scrap the data from the page
+- import config: xpath constants
+
 
 ## Usage
-The code gives an option for the user to enter: Primary or Secondary:
+1. The code gives an option for the user to enter required categories (partial code below)
 ```
-#Now depends on the type of school chosen the final choice is made
-if choice=='Primary':
-    choice_field=driver.find_element(By.XPATH, '//*[@id="subcatOption-1-1"]')
-    choice_field.click()
-else: 
-    choice_field=driver.find_element(By.XPATH, '//*[@id="subcatOption-1-2"]')
-    choice_field.click()
-time.sleep(2)
+def options():
+    category_choice=input('Please Select: 1 - Education and Training; 2 - Chilcare and Early Education')
+    if category_choice == "1":
+        category_choice== "Education and Training"
+        age = input('Please Select: 1 - Primary, 2 - Secondary')
+        if age == "1":
+            return [category_choice, "Primary"]
+        
+        elif age == "2":
+            return [category_choice, "Secondary"]
+        
+        else:
+            print("You must choose between 1 or 2")
+            return options()
 ```
-For demostration purposes only 5 pages are being selected for data scraping, however with better storage facility one can modify to select all.
-```
-#Three, we can loop over next whatever pages, for space/time only 5 pages is set:
-page_number=driver.find_element(By.XPATH, '//span[@class="pagination__numbers"]').text
-print(f'There are {page_number} pages to go through\n ')
 
-for page in range(5):
-    driver.find_element(By.XPATH, '//a[@class="pagination__next"]').click()
-    WebDriverWait(driver, 15).until(EC.url_changes(URL))
-    li_tags = driver.find_elements(By.XPATH, '//ul[@class="results-list list-unstyled"]/li') 
-    school_data= select_data.select_data(li_tags, choice,school_data)
+2. Introducation of the scraper class:
+```
+class ofsted_scraper (partial code below):
+    '''
+    Extract the data on schools with the rating and last report from ofsted website,
+    the data is based on the inputs: pre-nursery/nursery/primary/secondary
 
+    Attributes:
+        URL (str): The ofsted URL, which will be modified based on the provided inputs
+    '''
+    def __init__(self, xpath_category: str, xpath_age:str):
+        self.URL="https://reports.ofsted.gov.uk/"
+        options = Options()
+        options.headless = True
+        self.driver = webdriver.Chrome(options=options)
+        self.xpath_category=xpath_category
+        self.xpath_age=xpath_age
 ```
 
 ## Project Status
@@ -83,10 +99,11 @@ Project is: _in progress_
 
 ## Room for Improvement
 Room for improvement:
-- The project will benefit from the addion of drivers for various web browsers: Firefox, Safari, etc.
+- The project will benefit from the selection of the driver as an option for various web browsers: Firefox, Safari, etc.
+- Current project has no images scraping, as the website doesn't contain them
 
 To do:
-- The visualisation of the data, etc.
+- The visualisation of the data as per person request.
 
 
 ## Acknowledgements

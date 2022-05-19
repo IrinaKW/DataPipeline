@@ -8,11 +8,14 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+import os
+import uuid
 
 # import 
 import input_categories
 import select_data
 import config
+
 
 class ofsted_scraper:
     '''
@@ -52,7 +55,8 @@ class ofsted_scraper:
         #scraping process will collect <li> tags and loop over them to filter and collect info
         total_pages=self.driver.find_element(By.XPATH, config.xpath_pages).text
         page_number=(int(input(f'There are {total_pages} of your search, enter the number of pages you would like to scrap: ')))
-        with open("ofsted_data.json", "w") as outfile:
+        os.makedirs("/raw_data/ofsted_reports", exist_ok=True)
+        with open("/raw_data/ofsted_reports/data.json", "w") as outfile:
             for page in range(page_number):
                 li_tags = self.driver.find_elements(By.XPATH, config.xpath_li_tags)
                 select_data.select_data(li_tags, outfile)
@@ -71,6 +75,9 @@ if __name__ == "__main__":
     scraper.cookies()
     scraper.select_category()
     scraper.scraper()
+
+
+
 
 
 
