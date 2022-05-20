@@ -48,10 +48,10 @@ The required libraries are:
 - time
 - os
 - uuid
+- json
 
 The reqduired files, with list of constants and methods:
 - import input_categories: convert input information into related xpaths
-- import select_data: scrap the data from the page
 - import config: xpath constants
 
 
@@ -101,9 +101,10 @@ Project is: _in progress_
 Room for improvement:
 - The project will benefit from the selection of the driver as an option for various web browsers: Firefox, Safari, etc.
 - Current project has no images scraping, as the website doesn't contain them
+- The option for the user to have a choice of either print the data on screen or write all in file as at present
 
 To do:
-- The visualisation of the data as per person request.
+- The visualisation of the data as per the user request.
 
 
 ## Acknowledgements
