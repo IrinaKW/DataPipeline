@@ -34,6 +34,13 @@ class ofsted_scraper:
         self.xpath_category=xpath_category
         self.xpath_age=xpath_age
 
+    def input_categories(self):
+        """Create a method for input values as oppose to input_categories pre-function?
+        
+        """
+        pass 
+        
+
 
     def cookies(self):
         """Open URL and identifies the cookies button on the page and click on it.
@@ -147,3 +154,17 @@ if __name__ == "__main__":
     scraper.scraper()
 
 # %%
+
+"""
+ideas for visuals/tabulars:
+% of schools per each rating, including NA
+% of schools with last reports over 4 years old (omit NA)
+combine rating/old report
+geo pandas for location of the rating schools/ outdatted reports
+
+tables: 
+provide top 10 / bottom 10 schools based on rating
+provide top 10 / bottom 10 schools based on last report
+
+
+"""
