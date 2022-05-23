@@ -11,10 +11,12 @@ import time
 import os
 import uuid
 import json
+import unittest
 
 # import 
 import input_categories
 import config
+import test_module
 
 
 class ofsted_scraper:
@@ -36,7 +38,7 @@ class ofsted_scraper:
 
     def input_categories(self):
         """Create a method for input values as oppose to input_categories pre-function?
-        
+
         """
         pass 
         
@@ -142,16 +144,24 @@ class ofsted_scraper:
 
 if __name__ == "__main__":
     #Request to enter the search fields and update xpaths
+    
+    #run test file
+    suite = unittest.TestLoader().loadTestsFromModule(test_module)
+    unittest.TextTestRunner(verbosity=2).run(suite)
+    
+    #run input request file
     category_age=input_categories.options()
     res=input_categories.setup_xpaths(category_age)
     xpath_category=res[0]
     xpath_age=res[1]
 
-    #initiate the class
+    #initiate the class with the json file as the result
     scraper=ofsted_scraper(xpath_category, xpath_age)
     scraper.cookies()
     scraper.select_category()
     scraper.scraper()
+
+
 
 # %%
 
