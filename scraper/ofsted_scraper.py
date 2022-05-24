@@ -16,7 +16,7 @@ import unittest
 # import 
 import input_categories
 import config
-import test_module
+import tests.test_module
 
 
 class ofsted_scraper:
@@ -146,7 +146,7 @@ if __name__ == "__main__":
     #Request to enter the search fields and update xpaths
     
     #run test file
-    suite = unittest.TestLoader().loadTestsFromModule(test_module)
+    suite = unittest.TestLoader().loadTestsFromModule(tests.test_module)
     unittest.TextTestRunner(verbosity=2).run(suite)
     
     #run input request file
