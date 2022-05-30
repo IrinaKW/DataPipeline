@@ -40,6 +40,8 @@ List the ready features here:
 
 ## Screenshots
 section _in progress_
+The scraper does image scraping from each school name, address, unique ID registered with Ofsted
+![Example of one of the school's snapshop](./images/school_screenshot.png)
 
 
 ## Setup
@@ -53,6 +55,11 @@ The required libraries are:
 The reqduired files, with list of constants and methods:
 - import input_categories: convert input information into related xpaths
 - import config: xpath constants
+
+The scraper runs the test_module (test_module.py)
+Module checks: 
+- if buildin link and xpaths are active and valid
+- if inputs provide required variable assignments
 
 
 ## Usage
@@ -100,7 +107,6 @@ Project is: _in progress_
 ## Room for Improvement
 Room for improvement:
 - The project will benefit from the selection of the driver as an option for various web browsers: Firefox, Safari, etc.
-- Current project has no images scraping, as the website doesn't contain them
 - The option for the user to have a choice of either print the data on screen or write all in file as at present
 
 To do:
