@@ -28,6 +28,8 @@ The project uses Python, Selenium, Chromedrive to perform the above
 - Python 3.9.7
 - Chromedriver 101.0.4951.41 
 - Chrome 101.0.4951.67
+- AWS S3
+- AWS RDS
 
 
 
@@ -35,13 +37,17 @@ The project uses Python, Selenium, Chromedrive to perform the above
 List the ready features here:
 - ability to accept cookies
 - selection of required options
-- data file as an output
+- tabular data file as json created one per page, uploaded to AWS S3 bucket and to Postgres RDS
+- screenshot images, 10 per page, uploaded to AWS S3
+- all files are deleted from the local system to minimise storage issues
 
 
 ## Screenshots
 section _in progress_
 The scraper does image scraping from each school name, address, unique ID registered with Ofsted
-![Example of one of the school's snapshop](./images/school_screenshot.png)
+![Example of one of the school's snapshop](./img/school_screenshot.png)
+![Example of the pd dataframe created](./img/df.png)
+
 
 
 ## Setup
@@ -51,15 +57,18 @@ The required libraries are:
 - os
 - uuid
 - json
+- psycopg2
+- pandas
+- unittest
+- boto3
+- sqlalchemy
 
-The reqduired files, with list of constants and methods:
-- import input_categories: convert input information into related xpaths
-- import config: xpath constants
 
-The scraper runs the test_module (test_module.py)
-Module checks: 
-- if buildin link and xpaths are active and valid
-- if inputs provide required variable assignments
+Required additional modules:
+- import config: xpath constants, input RDS credentials
+- test_module (test_module.py). Module checks: 
+    - if buildin link and xpaths are active and valid
+    - if inputs provide required variable assignments
 
 
 ## Usage
@@ -81,7 +90,7 @@ def options():
             return options()
 ```
 
-2. Introducation of the scraper class:
+2. Intro into of the scraper class:
 ```
 class ofsted_scraper (partial code below):
     '''
@@ -99,7 +108,32 @@ class ofsted_scraper (partial code below):
         self.xpath_category=xpath_category
         self.xpath_age=xpath_age
 ```
+3. selenium drive is used to control the link(s) and take snapshots of the linked school
+```
+def __get_screenshot_item(self,item,name):
+        item.find_element(By.PARTIAL_LINK_TEXT, name).click()
+        pic_element = self.driver.find_element(By.XPATH, config.XPATH_PIC)
+        file_name=str("scraper/raw_data/ofsted_reports/images/"+name+".png")
+        s3_name=str(name+".png")
+        screenshot_as_bytes = pic_element.screenshot_as_png
+        os.makedirs("scraper/raw_data/ofsted_reports/images/", exist_ok=True)
+        with open(file_name, 'wb') as f:
+            f.write(screenshot_as_bytes)
+        s3_client =boto3.client('s3')
+        s3_client.upload_file(file_name, 'ofstedscraper', s3_name)
+        os.remove(file_name) 
+        time.sleep(3)
+        self.driver.back()
+        time.sleep(3)
+```
+4. information is uploaded to AWS
+```
+        #upload to S3 bucket     
+        s3_name=str('data'+str(page)+'.json')
+        s3_client =boto3.client('s3')
+        s3_client.upload_file('scraper/raw_data/ofsted_reports/data.json', 'ofstedscraper', s3_name)
 
+```
 ## Project Status
 Project is: _in progress_ 
 
@@ -107,10 +141,10 @@ Project is: _in progress_
 ## Room for Improvement
 Room for improvement:
 - The project will benefit from the selection of the driver as an option for various web browsers: Firefox, Safari, etc.
-- The option for the user to have a choice of either print the data on screen or write all in file as at present
+- The option for the user to have a choice of either print the data on screen or store the file remotely as at present
 
 To do:
-- The visualisation of the data as per the user request.
+- The visualisation/ dashboard of the data as per the user request.
 
 
 ## Acknowledgements

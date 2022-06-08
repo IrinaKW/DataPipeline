@@ -12,3 +12,12 @@ XPATH_PAGES='//span[@class="pagination__numbers"]'
 XPATH_LI_TAGS='//ul[@class="results-list list-unstyled"]/li'
 XPATH_NEXTPAGE='//a[@class="pagination__next"]'
 XPATH_PIC='//*[@id="main"]/div[1]'
+
+# List of constants for AWS RDS connection
+DATABASE_TYPE = 'postgresql'
+DBAPI = 'psycopg2'
+ENDPOINT =  'ofstedscraper.cwidjkjq59dz.eu-west-2.rds.amazonaws.com'
+USER = 'postgres'
+PASSWORD = 'ofstedscraper'
+PORT = 5432
+DATABASE = 'postgres'

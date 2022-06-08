@@ -7,14 +7,19 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from sqlalchemy import create_engine
+import psycopg2
+import pandas as pd
 import time
 import os
 import uuid
 import json
-#import urllib
+import unittest
+import boto3
 
-#import unittest
+#scraper additional modules
 import config
+import test_module
 
 
 
@@ -137,6 +142,31 @@ class ofsted_scraper:
         self.driver.find_element(By.XPATH, config.XPATH_SUBMIT).click()
         WebDriverWait(self.driver, 10).until(EC.url_changes(self.URL))
 
+    def __get_screenshot_item(self,item,name):
+        """This method is used to click the provided URL of each school, 
+        take snapshot of the specific element (i.e. School Info field)
+        save it as png file.
+        Attr: 
+            item (webelement): the webelement used to locate the required <a> link
+            name (str): the text that  <a> link has in it, related to the name of the school
+            i (str): the number that is used in the name of the file
+        Returns: 
+            png file: snapshot of each school top section that is being moved to the S3 AWS bucket storage place
+        """
+        item.find_element(By.PARTIAL_LINK_TEXT, name).click()
+        pic_element = self.driver.find_element(By.XPATH, config.XPATH_PIC)
+        file_name=str("scraper/raw_data/ofsted_reports/images/"+name+".png")
+        s3_name=str(name+".png")
+        screenshot_as_bytes = pic_element.screenshot_as_png
+        os.makedirs("scraper/raw_data/ofsted_reports/images/", exist_ok=True)
+        with open(file_name, 'wb') as f:
+            f.write(screenshot_as_bytes)
+        s3_client =boto3.client('s3')
+        s3_client.upload_file(file_name, 'ofstedscraper', s3_name)
+        os.remove(file_name) 
+        time.sleep(3)
+        self.driver.back()
+        time.sleep(3)
 
     def __select_data(self, li_tags, outfile):
         """Scraps the data from the given page, generates uuid for each item, create the json file with data
@@ -149,7 +179,7 @@ class ofsted_scraper:
             IndexError: if the structure of the data is modified or doesn't follow the identify layout, 
             the NA value is entered, or the entry is passed on as irrelevant.
         """
-        
+        data_file=[]
         for i in range(len(li_tags)):
 
             item = self.driver.find_elements(By.XPATH, config.XPATH_LI_TAGS)[i]
@@ -160,44 +190,58 @@ class ofsted_scraper:
             try:
                 last_report=info[-2].split(':')[1].strip()
             except IndexError:
-                last_report='NA'
+                last_report="Null"
         
             if len(info)==6:
                 rating=info[-3].split(':')[1].strip()
             elif len(info)==5:
-                rating='NA'
+                rating="Null"
             else: continue
             id = uuid.uuid4()
             
-            data_json=json.dumps({'id':[str(id)], 'name':[name], 'category':[category], 'address':[address], 'rating':[rating], 'last_report':[last_report]}, indent=4)  
-            outfile.write(data_json)
-            self.__get_screenshot_item(item,name,i)
-
+            #data_json=json.dumps({"id":str(id), "name":name, "category":category, "address":address, "rating":rating, "last_report":last_report}, indent=4)  
+            data_file.append({"id":str(id), "name":name, "category":category, "address":address, "rating":rating, "last_report":last_report})
+        data_json=json.dumps(data_file)
+        outfile.write(data_json)
+        self.__get_screenshot_item(item,name)
             
+       
+    def aws_upload(self, page):
+        """Method uses AWS S3 bucket and RDS, and dumps the json file that contains data scraped from the current page,
+        removes the file from the directory to minimise the required storage space.
+        Args:
+            page (int): current webpage number that has been used for data scraping
+        """   
+        #upload to S3 bucket     
+        s3_name=str('data'+str(page)+'.json')
+        s3_client =boto3.client('s3')
+        s3_client.upload_file('scraper/raw_data/ofsted_reports/data.json', 'ofstedscraper', s3_name)
+        
+        #connect to RDS and upload file
+        DATABASE_TYPE = config.DATABASE_TYPE
+        DBAPI = config.DBAPI
+        ENDPOINT =  config.ENDPOINT
+        USER = config.USER
+        PASSWORD = config.PASSWORD
+        PORT = config.PORT
+        DATABASE = config.DATABASE
+        engine = create_engine(f"{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{ENDPOINT}:{PORT}/{DATABASE}")
+        engine.connect()
+        try:
+            df = pd.read_sql("ofstedscraper", engine)
+            df_new=pd.read_json('data.json')
+            frames = [df, df_new]
+            df = pd.concat(frames)
 
+        except:
+            df=pd.read_json('data.json')
 
-    def __get_screenshot_item(self,item,name,i):
-        """This method is used to click to the provided URL of each school, take snapshot of the specific element (i.e. School Info field)
-        Attr: 
-            item (webelement): the webelement used to locate the required <a> link
-            name (str): the text that  <a> link has in it, related to the name of the school
-            i (str): the number that is used in the name of the file
-        Returns: 
-            png file: spanshot of each school data
-
-        """
-        item.find_element(By.PARTIAL_LINK_TEXT, name).click()
-        pic_element = self.driver.find_element(By.XPATH, config.XPATH_PIC)
-        file_name=str("images/"+str(i+1)+".png")
-        screenshot_as_bytes = pic_element.screenshot_as_png
-        with open(file_name, 'wb') as f:
-            f.write(screenshot_as_bytes)
-        time.sleep(3)
-        self.driver.back()
-        time.sleep(3)
-
-
-
+        #send data back to sql
+        df.to_sql("ofstedscraper", engine, if_exists="replace")
+           
+        #remove file from the system
+        os.remove('scraper/raw_data/ofsted_reports/data.json')
+    
 
     def start_scraping(self):
         """Scraping process will collect <li> tags and loop over them to filter and collect info
@@ -211,36 +255,31 @@ class ofsted_scraper:
         self.__select_category()
         total_pages=self.driver.find_element(By.XPATH, config.XPATH_PAGES).text
         page_number=(int(input(f'There are {total_pages} of your search, enter the number of pages you would like to scrap: ')))
-        os.makedirs("raw_data/ofsted_reports", exist_ok=True)
-        with open("raw_data/ofsted_reports/data.json", "w") as outfile:
-            for page in range(page_number):
+        os.makedirs("scraper/raw_data/ofsted_reports", exist_ok=True)
+        for page in range(page_number):
+            with open("scraper/raw_data/ofsted_reports/data.json", "w") as outfile:
                 li_tags = self.driver.find_elements(By.XPATH, config.XPATH_LI_TAGS)
                 self.__select_data(li_tags, outfile)
                 self.driver.find_element(By.XPATH, config.XPATH_NEXTPAGE).click()
                 WebDriverWait(self.driver, 15).until(EC.url_changes(self.URL))
-                page+=1
+                    
+            self.aws_upload(page)
+            page+=1
 
 
 
 if __name__ == "__main__":
        
     #run test file
-    #suite = unittest.TestLoader().loadTestsFromModule(tests.test_module)
-    #unittest.TextTestRunner(verbosity=2).run(suite)
+    suite = unittest.TestLoader().loadTestsFromModule(test_module)
+    unittest.TextTestRunner(verbosity=2).run(suite)
 
-    #initiate the class with the json file as the result
+    #initiate the class
     scraper=ofsted_scraper()
     scraper.get_1st_input()
     scraper.get_2nd_input()
     scraper.cookies()
     scraper.start_scraping()
-
-
-#%%
-
-
-
-
 
 
 # %%
