@@ -45,8 +45,11 @@ List the ready features here:
 ## Screenshots
 section _in progress_
 The scraper does image scraping from each school name, address, unique ID registered with Ofsted
-![Example of one of the school's snapshop](./img/school_screenshot.png)
-![Example of the pd dataframe created](./img/df.png)
+School's snapshot that is being collected
+![Example of one of the school's snapshot](img/school_screenshot.png)
+
+Dataframe sample
+![Example of the pd dataframe created](img/df.png)
 
 
 
