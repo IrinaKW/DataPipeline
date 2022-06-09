@@ -49,10 +49,10 @@ section _in progress_
 The scraper does image scraping from each school name, address, unique ID registered with Ofsted
 
 School's snapshot that is being collected
-![Example of one of the school's snapshot](.scraper/img/school_screenshot.png)
+![Example of one of the school's snapshot](./scraper/img/school_screenshot.png)
 
 Dataframe sample
-![Example of the pd dataframe created](.scraper/img/df.png)
+![Example of the pd dataframe created](./scraper/img/df.png)
 
 
 
