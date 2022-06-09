@@ -3,7 +3,8 @@
 This is the web scraper project that employs the scraper on the Ofsted website for primary and secondary public schools
 The idea is to collect all the information for quick update on last reports and rating of various schools.
 
-The project uses Python, Selenium, Chromedrive to perform the above
+The project uses Python, Selenium, Chromedrive, AWS S3, AWS RDS
+ to perform the above
 
 ## Table of Contents
 * [General Info](#general-information)
@@ -23,6 +24,7 @@ The project uses Python, Selenium, Chromedrive to perform the above
 - The project came as an idea of combining data mining/ pipeline and education, finidng the way to improve of the current website. 
 - It is essential for the schools to be checked once in 4 years. 
 - The project not only showed that the system is behind but also demonstrated how far behand and what schools are in need to be observed.
+
 
 ## Technologies Used
 - Python 3.9.7
@@ -45,11 +47,12 @@ List the ready features here:
 ## Screenshots
 section _in progress_
 The scraper does image scraping from each school name, address, unique ID registered with Ofsted
+
 School's snapshot that is being collected
-![Example of one of the school's snapshot](img/school_screenshot.png)
+![Example of one of the school's snapshot](.scraper/img/school_screenshot.png)
 
 Dataframe sample
-![Example of the pd dataframe created](img/df.png)
+![Example of the pd dataframe created](.scraper/img/df.png)
 
 
 
