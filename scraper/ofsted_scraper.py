@@ -38,6 +38,17 @@ class ofsted_scraper:
         options = Options()
         options.headless = True
         self.driver = webdriver.Chrome(options=options)
+                
+        #connect to RDS
+        DATABASE_TYPE = config.DATABASE_TYPE
+        DBAPI = config.DBAPI
+        ENDPOINT =  config.ENDPOINT
+        USER = config.USER
+        PASSWORD = config.PASSWORD
+        PORT = config.PORT
+        DATABASE = config.DATABASE
+        self.engine = create_engine(f"{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{ENDPOINT}:{PORT}/{DATABASE}")
+        self.engine.connect()
 
 
     def get_1st_input(self):
@@ -48,7 +59,7 @@ class ofsted_scraper:
             notify user if input is not correct, repeat the request
         """
         while True:
-            self.category=int(input('Please Select: 1 - Education and Training; 2 - Chilcare and Early Education'))
+            self.category=int(input('Please Select: 1 - Education and Training; 2 - Chilcare and Early Education :'))
             if self.category==1 or self.category==2:
                 break
             else:
@@ -63,13 +74,13 @@ class ofsted_scraper:
         """
         while True:
             if self.category==1:
-                self.age= int(input('Please Select: 1 - Primary, 2 - Secondary'))
+                self.age= int(input('Please Select: 1 - Primary, 2 - Secondary: '))
                 if self.age==1 or self.age==2:
                     break
                 else:
                     print("You must choose either 1 or 2")
             else:
-                self.age = int(input("Choose 1: Pre-school/day nursery/out-of-school care, 2: Nursery school/school with nursery"))
+                self.age = int(input("Choose 1: Pre-school/day nursery/out-of-school care, 2: Nursery school/school with nursery: "))
                 if self.age==1 or self.age==2:
                     break
                 else:
@@ -168,7 +179,7 @@ class ofsted_scraper:
         self.driver.back()
         time.sleep(3)
 
-    def __select_data(self, li_tags, outfile):
+    def __select_data(self, li_tags):
         """Scraps the data from the given page, generates uuid for each item, create the json file with data
         Args:
             li_tags (lst): list of li_tags collected from the page that encapuslates all related data
@@ -179,12 +190,20 @@ class ofsted_scraper:
             IndexError: if the structure of the data is modified or doesn't follow the identify layout, 
             the NA value is entered, or the entry is passed on as irrelevant.
         """
-        data_file=[]
-        for i in range(len(li_tags)):
+        
+        df = pd.read_sql_table('ofstedscraper', self.engine)
+        df=df[['id', "name", "category", "address", "rating", "last_report"]]
 
+        uuid_list=list(df['id'])
+
+        for i in range(len(li_tags)):
             item = self.driver.find_elements(By.XPATH, config.XPATH_LI_TAGS)[i]
             info=(item.text).split('\n')
             name=info[0]
+            id=str(uuid.uuid3(uuid.NAMESPACE_DNS, name))
+            if id in uuid_list:
+                print('pass this one')
+                continue
             category=info[1].split(':')[1].strip()
             address=info[2]
             try:
@@ -197,49 +216,40 @@ class ofsted_scraper:
             elif len(info)==5:
                 rating="Null"
             else: continue
-            id = uuid.uuid4()
             
+                     
             #data_json=json.dumps({"id":str(id), "name":name, "category":category, "address":address, "rating":rating, "last_report":last_report}, indent=4)  
-            data_file.append({"id":str(id), "name":name, "category":category, "address":address, "rating":rating, "last_report":last_report})
-        data_json=json.dumps(data_file)
-        outfile.write(data_json)
-        self.__get_screenshot_item(item,name)
-            
+            df_new= pd.DataFrame([[id,
+                name, 
+                category, 
+                address, 
+                rating, 
+                last_report]], columns=['id', "name", "category", "address", "rating", "last_report"]) 
+            df=pd.concat([df,df_new],ignore_index=True)
+            self.__get_screenshot_item(item,name)
+        
+        self.aws_upload(df)
+        
+  
        
-    def aws_upload(self, page):
+    def aws_upload(self,df):
         """Method uses AWS S3 bucket and RDS, and dumps the json file that contains data scraped from the current page,
         removes the file from the directory to minimise the required storage space.
         Args:
             page (int): current webpage number that has been used for data scraping
         """   
-        #upload to S3 bucket     
-        s3_name=str('data'+str(page)+'.json')
+        #convert df into json file
+        df.to_json('scraper/raw_data/ofsted_reports/data.json', orient='records', lines=True )
+        
+        #send df back to Aws RDS
+        df.to_sql("ofstedscraper", self.engine, if_exists="replace")
+
+        #upload json S3 bucket     
+        s3_name=str('full_data.json')
         s3_client =boto3.client('s3')
         s3_client.upload_file('scraper/raw_data/ofsted_reports/data.json', 'ofstedscraper', s3_name)
-        
-        #connect to RDS and upload file
-        DATABASE_TYPE = config.DATABASE_TYPE
-        DBAPI = config.DBAPI
-        ENDPOINT =  config.ENDPOINT
-        USER = config.USER
-        PASSWORD = config.PASSWORD
-        PORT = config.PORT
-        DATABASE = config.DATABASE
-        engine = create_engine(f"{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{ENDPOINT}:{PORT}/{DATABASE}")
-        engine.connect()
-        try:
-            df = pd.read_sql("ofstedscraper", engine)
-            df_new=pd.read_json('data.json')
-            frames = [df, df_new]
-            df = pd.concat(frames)
-
-        except:
-            df=pd.read_json('data.json')
-
-        #send data back to sql
-        df.to_sql("ofstedscraper", engine, if_exists="replace")
-           
-        #remove file from the system
+                   
+        #remove json files from the system
         os.remove('scraper/raw_data/ofsted_reports/data.json')
     
 
@@ -259,11 +269,10 @@ class ofsted_scraper:
         for page in range(page_number):
             with open("scraper/raw_data/ofsted_reports/data.json", "w") as outfile:
                 li_tags = self.driver.find_elements(By.XPATH, config.XPATH_LI_TAGS)
-                self.__select_data(li_tags, outfile)
+                self.__select_data(li_tags)
                 self.driver.find_element(By.XPATH, config.XPATH_NEXTPAGE).click()
                 WebDriverWait(self.driver, 15).until(EC.url_changes(self.URL))
                     
-            self.aws_upload(page)
             page+=1
 
 
@@ -271,8 +280,8 @@ class ofsted_scraper:
 if __name__ == "__main__":
        
     #run test file
-    suite = unittest.TestLoader().loadTestsFromModule(test_module)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    #suite = unittest.TestLoader().loadTestsFromModule(test_module)
+    #unittest.TextTestRunner(verbosity=2).run(suite)
 
     #initiate the class
     scraper=ofsted_scraper()

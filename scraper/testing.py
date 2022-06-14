@@ -1,4 +1,5 @@
 # %%
+from curses import use_default_colors
 from socket import timeout
 import unittest
 from unittest.mock import patch
@@ -73,4 +74,41 @@ if __name__ == "__main__":
 
 
 
+# %%
+import pandas as pd
+from sqlalchemy import create_engine
+import config
+
+DATABASE_TYPE = config.DATABASE_TYPE
+DBAPI = config.DBAPI
+ENDPOINT =  config.ENDPOINT
+USER = config.USER
+PASSWORD = config.PASSWORD
+PORT = config.PORT
+DATABASE = config.DATABASE
+engine = create_engine(f"{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{ENDPOINT}:{PORT}/{DATABASE}")
+engine.connect()
+
+#%%
+
+df = pd.read_sql_table('ofstedscraper', engine)
+df=df[['id', "name", "category", "address", "rating", "last_report"]]
+df.head(31)
+
+#%%
+df_new=pd.read_json('raw_data/ofsted_reports/data.json')
+df_new.head(10)
+
+#%%
+frames = [df, df_new]
+df = pd.concat(frames, axis=0, join='inner', ignore_index=True)
+df.head(20)
+
+
+# %%
+import pandas as pd
+empty_df=pd.DataFrame(columns=('id', "name", "category", "address", "rating", "last_report"))
+empty_df.head()
+empty_df.to_sql("ofstedscraper", engine, if_exists="replace")
+      
 # %%
