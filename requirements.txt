@@ -1,0 +1,9 @@
+boto3==1.23.10
+pandas==1.4.2
+psycopg2==2.9.3
+psycopg2_binary==2.9.3
+requests==2.27.1
+selenium==4.2.0
+SQLAlchemy==1.4.32
+urllib3==1.26.9
+webdriver_manager==3.7.0

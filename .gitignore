@@ -5,6 +5,7 @@
 /scrape_method_wiki.py
 /practice/*
 aws_keys.py
+testing.py
 try*.py
 # Byte-compiled / optimized / DLL files
 __pycache__/

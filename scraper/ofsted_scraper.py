@@ -3,6 +3,7 @@
 
 # Import libraries/modules
 from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
@@ -16,6 +17,7 @@ import uuid
 import json
 import unittest
 import boto3
+import urllib3
 
 #scraper additional modules
 import config
@@ -25,20 +27,20 @@ import test_module
 
 class ofsted_scraper:
     '''
-    Extract the data on schools with the rating and last report from ofsted website,
-    the data is based on the inputs: pre-nursery/nursery/primary/secondary
-
-    Attributes:
-        xpath_category (str): the link to the category option selected based on the input (pre-school/school) 
-        xpath_age (str): the link to the sub_category option selected based on the input (pre-nursery or nursery/ primary or secondary)
+    Extract the data on schools from Ofsted website:
+        name
+        address
+        rating
+        last report from ofsted website
+        snapshot of the school info
+    Process it as dataframe (pandas) and store in RDS and S3 on AWS
+    Check if scraped piece of data already exists.  
     '''
+
     def __init__(self, category_age=[]):
         self.URL="https://reports.ofsted.gov.uk/"
         self.category_age=category_age
-        options = Options()
-        options.headless = True
-        self.driver = webdriver.Chrome(options=options)
-                
+        
         #connect to RDS
         DATABASE_TYPE = config.DATABASE_TYPE
         DBAPI = config.DBAPI
@@ -49,7 +51,21 @@ class ofsted_scraper:
         DATABASE = config.DATABASE
         self.engine = create_engine(f"{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{ENDPOINT}:{PORT}/{DATABASE}")
         self.engine.connect()
+    
+    def set_up(self):
+        chrome_options = Options()
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--remote-debugging-port=9222')
+        #self.driver = webdriver.Chrome(options=chrome_options) (for local run)
+        self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+        #self.driver = webdriver.Remote(command_executor='http://localhost:4444/wd/hub', options=chrome_options)        
 
+    def tearDown(self):
+        self.driver.quit()
 
     def get_1st_input(self):
         """Method asks for inputs from the user
@@ -202,7 +218,7 @@ class ofsted_scraper:
             name=info[0]
             id=str(uuid.uuid3(uuid.NAMESPACE_DNS, name))
             if id in uuid_list:
-                print('pass this one')
+                print('already exists')
                 continue
             category=info[1].split(':')[1].strip()
             address=info[2]
@@ -280,16 +296,17 @@ class ofsted_scraper:
 if __name__ == "__main__":
        
     #run test file
-    #suite = unittest.TestLoader().loadTestsFromModule(test_module)
-    #unittest.TextTestRunner(verbosity=2).run(suite)
+    suite = unittest.TestLoader().loadTestsFromModule(test_module)
+    unittest.TextTestRunner(verbosity=2).run(suite)
 
     #initiate the class
     scraper=ofsted_scraper()
     scraper.get_1st_input()
     scraper.get_2nd_input()
+    scraper.set_up()
     scraper.cookies()
     scraper.start_scraping()
-
+    scraper.tearDown()
 
 # %%
 

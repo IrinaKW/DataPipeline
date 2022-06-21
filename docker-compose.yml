@@ -1,0 +1,23 @@
+version: '3'
+
+networks:
+  selenium-network:
+    driver: bridge
+
+services:
+  selenium:
+    image: 'selenium/standalone-chrome'
+    networks:
+      - selenium-network
+  
+  scraper:
+    image: 'ofstedscraper:latest'
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    networks:
+      - selenium-network
+    ports:
+      - "4444:4444"
+    depends_on:
+      - selenium
+    #entrypoint: entrypoint? for interaction to accept bash command

@@ -2,6 +2,7 @@
 import unittest
 from unittest.mock import patch
 from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 import requests
@@ -16,9 +17,16 @@ class Test_Scraper(unittest.TestCase):
         if not sys.warnoptions:
             import warnings
             warnings.simplefilter("ignore")
-        options = Options()
-        options.headless = True
-        self.driver = webdriver.Chrome(options=options)
+        chrome_options = Options()
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--remote-debugging-port=9222')
+        #self.driver = webdriver.Chrome(options=chrome_options) (for local run)
+        #self.driver = webdriver.Remote(command_executor='http://localhost:4444/wd/hub', options=chrome_options)      
+        self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
         self.test_scraper=ofsted_scraper.ofsted_scraper()
         try: 
             accept_cookies_button = self.driver.find_element(By.XPATH, config.XPATH_COOKIE)
