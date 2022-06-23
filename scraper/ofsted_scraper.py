@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+#from selenium.webdriver.chrome.service import Service
 from sqlalchemy import create_engine
 import psycopg2
 import pandas as pd
@@ -18,10 +19,13 @@ import json
 import unittest
 import boto3
 import urllib3
+import logging
+import sys
 
 #scraper additional modules
 import config
 import test_module
+import aws_keys
 
 
 
@@ -53,6 +57,12 @@ class ofsted_scraper:
         self.engine.connect()
     
     def set_up(self):
+        if not sys.warnoptions:
+            import warnings
+            warnings.simplefilter("ignore")
+        logging.getLogger('WDM').setLevel(logging.NOTSET)
+        os.environ['WDM_LOG'] = "false"
+        
         chrome_options = Options()
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument('--headless')
@@ -63,6 +73,7 @@ class ofsted_scraper:
         #self.driver = webdriver.Chrome(options=chrome_options) (for local run)
         self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
         #self.driver = webdriver.Remote(command_executor='http://localhost:4444/wd/hub', options=chrome_options)        
+
 
     def tearDown(self):
         self.driver.quit()
@@ -188,7 +199,8 @@ class ofsted_scraper:
         os.makedirs("scraper/raw_data/ofsted_reports/images/", exist_ok=True)
         with open(file_name, 'wb') as f:
             f.write(screenshot_as_bytes)
-        s3_client =boto3.client('s3')
+        s3_client =boto3.client('s3', region_name=aws_keys.AWS_REGION, aws_access_key_id=aws_keys.AWS_ACCESS_KEY_ID,
+                          aws_secret_access_key=aws_keys.AWS_SECRET_ACCESS_KEY)
         s3_client.upload_file(file_name, 'ofstedscraper', s3_name)
         os.remove(file_name) 
         time.sleep(3)

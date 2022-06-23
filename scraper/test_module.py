@@ -1,4 +1,4 @@
-#%%
+
 import unittest
 from unittest.mock import patch
 from selenium import webdriver
@@ -10,6 +10,8 @@ import time
 import ofsted_scraper
 import config
 import sys
+import logging
+import os
 
 
 class Test_Scraper(unittest.TestCase):
@@ -17,6 +19,9 @@ class Test_Scraper(unittest.TestCase):
         if not sys.warnoptions:
             import warnings
             warnings.simplefilter("ignore")
+        logging.getLogger('WDM').setLevel(logging.NOTSET)
+        os.environ['WDM_LOG'] = "false"
+        
         chrome_options = Options()
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument('--headless')
@@ -66,7 +71,7 @@ class Test_Scraper(unittest.TestCase):
             assert response.status_code == 200
             
     
-    @patch('builtins.input', return_value=1)
+    @patch('builtins.input', return_value=1)    
     def test_get_1st_input1(self, mock_input):
         """Test when input is 1st category"""
         self.test_scraper.get_1st_input()
@@ -111,6 +116,3 @@ if __name__ == "__main__":
     suite = unittest.TestLoader().loadTestsFromTestCase(Test_Scraper)
     unittest.TextTestRunner(verbosity=2).run(suite)
 
-
-
-# %%
