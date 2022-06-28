@@ -1,0 +1,27 @@
+global:
+  scrape_interval: '1s'  # By default, scrape targets every 15 seconds.
+  external_labels:
+    monitor: 'codelab-monitor'
+
+scrape_configs:
+  # Prometheus monitoring itself
+  - job_name: 'prometheus'
+    scrape_interval: '10s'
+    static_configs:
+      - targets: ['localhost:9090']
+      
+  # OS monitoring
+  - job_name: 'node'
+    scrape_interval: '5s'
+    static_configs:
+      - targets: ['localhost:9100']
+        labels:
+          group: 'production' # notice we have defined two nodes to be labelled in the production environment
+
+   # Docker monitoring
+  - job_name: 'docker'
+         # metrics_path defaults to '/metrics'
+         # scheme defaults to 'http'.
+    static_configs:
+      - targets: ['127.0.0.1:9323'] # metrics address from our daemon.json file
+         

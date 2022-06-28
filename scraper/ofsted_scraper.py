@@ -274,7 +274,8 @@ class ofsted_scraper:
 
         #upload json S3 bucket     
         s3_name=str('full_data.json')
-        s3_client =boto3.client('s3')
+        s3_client =boto3.client('s3', region_name=aws_keys.AWS_REGION, aws_access_key_id=aws_keys.AWS_ACCESS_KEY_ID,
+                          aws_secret_access_key=aws_keys.AWS_SECRET_ACCESS_KEY)
         s3_client.upload_file('scraper/raw_data/ofsted_reports/data.json', 'ofstedscraper', s3_name)
                    
         #remove json files from the system
