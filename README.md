@@ -56,6 +56,11 @@ Additional applications:
 - Node-exporter is installed and added to Prometheus to monitor hardware metrics
 - Grafana dashboard is created onthe local machine to monitor the metrics of the containers (Docker) and the hardware metrics of the EC2 instance.
 
+CI/CD Pipeline:
+- Github secrets/ github actions # file main.yml created to monitor master branch update and push updates to dockerhub using docker access token saved as github secret
+- Cron is set up on EC2 to remove, pull, run container with scraper every 24 hours
+
+
 
 ## Screenshots
 The scraper does image scraping from each school name, address, unique ID registered with Ofsted
