@@ -21,57 +21,75 @@ The project uses Python, Selenium, Chromedrive, AWS S3, AWS RDS
 
 
 ## General Information
-- The project came as an idea of combining data mining/ pipeline and education, finidng the way to improve of the current website. 
-- It is essential for the schools to be checked once in 4 years. 
-- The project not only showed that the system is behind but also demonstrated how far behand and what schools are in need to be observed.
+- The project came as an idea of combining data mining/ pipeline and education.
+- The pipeline uses various techniques and engines to collect, store, process, display information about data and system metrics as well.
 
 
 ## Technologies Used
 - Python 3.9.7
-- Chromedriver 101.0.4951.41 
-- Chrome 101.0.4951.67
+- Chromedriver: latest
+- Chrome: latest
 - AWS S3
-- AWS RDS
-
+- AWS RDS and Pg4Admin/ PostgreSQL
+- AWS EC2 instance
+- Docker and Dockerd set up on the EC2 instance
+- Prometheus
+- Node-Exporter
+- Grafana Dashboard
 
 
 ## Features
-List the ready features here:
-- ability to accept cookies
-- selection of required options
-- tabular data file as json created one per page, uploaded to AWS S3 bucket and to Postgres RDS
-- screenshot images, 10 per page, uploaded to AWS S3
-- all files are deleted from the local system to minimise storage issues
+Scraper code:
+- run unittests for XPATHS, inputs, cookies
+- takes user input
+- accepts cookies
+- scrapes data according to selected number of pages
+- creates json file for tabular data, uploads to AWS S3 bucket and to Postgres RDS/PG4Admin
+- screenshots images, 10 per page, uploaded to AWS S3
+- checks if piece of data already exsists based on uuid
+- removes all scraped data localy  
+
+Additional applications:
+- Scraper is dockerized and container is spun on AWS EC2 instance
+- Scraper is run in headless mode from the EC2 instance
+- Prometheus monitoring is added on top of the container to monitor docker state on EC2
+- Node-exporter is installed and added to Prometheus to monitor hardware metrics
+- Grafana dashboard is created onthe local machine to monitor the metrics of the containers (Docker) and the hardware metrics of the EC2 instance.
 
 
 ## Screenshots
-section _in progress_
 The scraper does image scraping from each school name, address, unique ID registered with Ofsted
 
-School's snapshot that is being collected
+- School's snapshot that is being collected
 ![Example of one of the school's snapshot](./scraper/img/school_screenshot.png)
 
-Dataframe sample
+- Dataframe sample
 ![Example of the pd dataframe created](./scraper/img/df.png)
+
+- Grafana Dashboard
+![Example of the pd dataframe created](./scraper/img/grafana.png)
+
+- Prometheus Targets set up (the screenshot shows EC2 instance public IP for demonstration)
+![Example of the pd dataframe created](./scraper/img/prometheus.png)
 
 
 
 ## Setup
 The required libraries are:
-- selenium / webdriver
-- time
-- os
-- uuid
-- json
-- psycopg2
-- pandas
-- unittest
-- boto3
-- sqlalchemy
+boto3==1.23.10
+pandas==1.4.2
+psycopg2==2.9.3
+psycopg2_binary==2.9.3
+requests==2.27.1
+selenium==4.2.0
+SQLAlchemy==1.4.32
+urllib3==1.26.9
+webdriver_manager==3.7.0
 
 
 Required additional modules:
 - import config: xpath constants, input RDS credentials
+- the aws_keys.py is a private/hidden file
 - test_module (test_module.py). Module checks: 
     - if buildin link and xpaths are active and valid
     - if inputs provide required variable assignments
@@ -114,7 +132,8 @@ class ofsted_scraper (partial code below):
         self.xpath_category=xpath_category
         self.xpath_age=xpath_age
 ```
-3. selenium drive is used to control the link(s) and take snapshots of the linked school
+
+3. Selenium drive is used to control the link(s) and take snapshots of the linked school
 ```
 def __get_screenshot_item(self,item,name):
         item.find_element(By.PARTIAL_LINK_TEXT, name).click()
@@ -125,21 +144,40 @@ def __get_screenshot_item(self,item,name):
         os.makedirs("scraper/raw_data/ofsted_reports/images/", exist_ok=True)
         with open(file_name, 'wb') as f:
             f.write(screenshot_as_bytes)
-        s3_client =boto3.client('s3')
+        s3_client =boto3.client('s3', region_name=aws_keys.AWS_REGION, aws_access_key_id=aws_keys.AWS_ACCESS_KEY_ID, aws_secret_access_key=aws_keys.AWS_SECRET_ACCESS_KEY))
         s3_client.upload_file(file_name, 'ofstedscraper', s3_name)
         os.remove(file_name) 
         time.sleep(3)
         self.driver.back()
         time.sleep(3)
 ```
-4. information is uploaded to AWS
+
+4. Data is uploaded to AWS, after being checked if already exists
 ```
-        #upload to S3 bucket     
-        s3_name=str('data'+str(page)+'.json')
-        s3_client =boto3.client('s3')
-        s3_client.upload_file('scraper/raw_data/ofsted_reports/data.json', 'ofstedscraper', s3_name)
+def aws_upload(self,df):
+    """Method uses AWS S3 bucket and RDS, and dumps the json file that contains data scraped from the current page,
+    removes the file from the directory to minimise the required storage space.
+    Args:
+        page (int): current webpage number that has been used for data scraping
+    """   
+    #convert df into json file
+    df.to_json('scraper/raw_data/ofsted_reports/data.json', orient='records', lines=True )
+    
+    #send df back to Aws RDS
+    df.to_sql("ofstedscraper", self.engine, if_exists="replace")
+
+    #upload json S3 bucket     
+    s3_name=str('full_data.json')
+    s3_client =boto3.client('s3', region_name=aws_keys.AWS_REGION, aws_access_key_id=aws_keys.AWS_ACCESS_KEY_ID,
+                        aws_secret_access_key=aws_keys.AWS_SECRET_ACCESS_KEY)
+    s3_client.upload_file('scraper/raw_data/ofsted_reports/data.json', 'ofstedscraper', s3_name)
+                
+    #remove json files from the system
+    os.remove('scraper/raw_data/ofsted_reports/data.json')
 
 ```
+
+
 ## Project Status
 Project is: _in progress_ 
 
@@ -148,9 +186,8 @@ Project is: _in progress_
 Room for improvement:
 - The project will benefit from the selection of the driver as an option for various web browsers: Firefox, Safari, etc.
 - The option for the user to have a choice of either print the data on screen or store the file remotely as at present
-
-To do:
 - The visualisation/ dashboard of the data as per the user request.
+- Checkin the last date report in addition to the name for potential updates
 
 
 ## Acknowledgements
